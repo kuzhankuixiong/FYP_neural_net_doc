@@ -1,0 +1,20 @@
+\documentclass[10pt]{article}
+\usepackage{amsmath}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{graphicx}
+\usepackage[T1]{fontenc}
+
+\lstset{
+frame=trBL, tabsize=4, showstringspaces=false, commentstyle=\color{blue}, stringstyle=\color{red}}
+
+\begin{document}
+
+\includegraphics[width=\textwidth]{{net_graph_latex_path}}
+\pagebreak
+
+{% for obj in net_list %}
+        {{obj}}
+{% endfor %}
+
+\end{document}
