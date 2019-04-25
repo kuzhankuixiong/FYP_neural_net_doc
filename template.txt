@@ -23,8 +23,7 @@ frame=trBL, tabsize=4, showstringspaces=false, commentstyle=\color{blue}, string
 
 
 {% for obj in net_list %}
-        {{obj}}
-        \pagebreak
+{{obj}}
 {% endfor %}
 
 \end{document}
