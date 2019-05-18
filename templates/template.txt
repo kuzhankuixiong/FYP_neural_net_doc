@@ -6,6 +6,7 @@
 \usepackage{mdframed}
 \usepackage[T1]{fontenc}
 \usepackage[left=5em]{geometry}
+\usepackage[export]{adjustbox}
 \allowdisplaybreaks
 
 \lstset{
@@ -15,7 +16,7 @@ frame=trBL, tabsize=4, showstringspaces=false, commentstyle=\color{blue}, string
 
 \section{Network Graph:}
 \begin{center}
-\includegraphics[width=\textwidth]{{net_graph_latex_path}}
+\includegraphics[width=300pt, max width=\textwidth]{{net_graph_latex_path}}
 \end{center}
 
 \section{Constant:}
