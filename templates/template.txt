@@ -1,1 +1,33 @@
+\documentclass[10pt]{article}
+\usepackage{amsmath}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{graphicx}
+\usepackage{mdframed}
+\usepackage[T1]{fontenc}
+\usepackage[left=5em]{geometry}
+\allowdisplaybreaks
 
+\lstset{
+frame=trBL, tabsize=4, showstringspaces=false, commentstyle=\color{blue}, stringstyle=\color{red}}
+
+\begin{document}
+
+\section{Network Graph:}
+\begin{center}
+\includegraphics[width=\textwidth]{{net_graph_latex_path}}
+\end{center}
+
+\section{Constant:}
+\begin{mdframed}[backgroundcolor=black!10]
+{% for obj in constant_list %}
+        ${{obj}}$\\
+{% endfor %}
+\end{mdframed}
+
+
+{% for obj in net_list %}
+{{obj}}
+{% endfor %}
+
+\end{document}
