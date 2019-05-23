@@ -7,10 +7,12 @@ from brian2tools import brian_plot
 from matplotlib import pyplot as pp
 from brian2.parsing.sympytools import str_to_sympy
 from jinja2 import Environment, FileSystemLoader
-from brian2 import Synapses, NeuronGroup, SpatialNeuron, CodeRunner, Subgroup, PoissonInput, Quantity, Cylinder
+from brian2 import Synapses, NeuronGroup, SpatialNeuron, CodeRunner, Subgroup, PoissonInput, Quantity, Cylinder, Soma
 from brian2.monitors import SpikeMonitor, StateMonitor, PopulationRateMonitor
 import warnings
 import matplotlib.pyplot as plt
+import re
+from collections import defaultdict
 
 
 def replace_underscore(x):
@@ -24,7 +26,7 @@ def convert_code_to_latex_listing(code):
     l = code.split('\n')
     l = [i.strip() for i in l]
     begin_listing = '\n\\begin{lstlisting}[language=Python,breaklines,showstringspaces=false]\n'
-    eqs = begin_listing + '\n\n'.join(l) + '\\end{lstlisting}\n'
+    eqs = begin_listing + '\n\n'.join(l) + '\n\\end{lstlisting}\n'
 
     return eqs
 
@@ -72,7 +74,7 @@ def generate_CodeRunner_latex(CR):
     return '\n'.join(CR_string)
 
 
-def generate_ng_latex(NG):
+def generate_ng_latex(NG, log_dict):
     '''
     NG: NeuronGroup
 
@@ -130,6 +132,9 @@ def generate_ng_latex(NG):
                 text.append(str(morpho.n))
                 text.append('\\item \\textbf{length:}')
                 text.append('${length!r}$'.format(length=sum(morpho._length)))
+            elif isinstance(morpho, Soma):
+                text.append('\\item \\textbf{diameter:}')
+                text.append('$' + morpho.diameter[0].in_best_unit() + '$')
 
             text.append('\\end{itemize}')
 
@@ -176,6 +181,16 @@ def generate_ng_latex(NG):
     if isinstance(NG, SpatialNeuron):
         text.append(generate_SpatialNeuron_latex(NG))
 
+    if log_dict is not None:
+        for key in log_dict:
+            if NG.name in key:  # if there is a subgroup of NG in keys of log_dict
+                code = []
+                for eq in log_dict[key]:
+                    code.append(eq)
+
+                text.append('\\item' + '\\textbf{' + replace_underscore(key) + ':}')
+                text.append(convert_code_to_latex_listing('\n'.join(code)))
+
     text.append('\\end{itemize}')
 
     return '\n'.join(text)
@@ -187,42 +202,48 @@ def generate_network_graph(net):
 
     generate a network graph
     '''
+    def mark_NG(NG):
+        '''
+        Mark name and start stop of a NeuronGroup
+
+        '''
+        return NG.name + ' (' + str(NG.start) + ', ' + str(NG.stop) + ')'
 
     def link_Subgroup(SB):
         if isinstance(SB, Subgroup):
-            g.edge(SB.name, SB.source.name)
-            g.node(SB.name, shape='circle')
-            g.node(SB.source.name, shape='doublecircle')
+            g.edge(mark_NG(SB), mark_NG(SB.source))
+            g.node(mark_NG(SB), shape='circle')
+            g.node(mark_NG(SB.source), shape='doublecircle')
 
     g = Digraph('G', filename='synapse.gv')
     for obj in net.objects:
         if isinstance(obj, NeuronGroup):
-            g.node(obj.name, shape='doublecircle')
+            g.node(mark_NG(obj), shape='doublecircle')
         if isinstance(obj, Synapses):
-            g.edge(obj.source.name, obj.target.name, label='<<b><i>' + obj.name + '</i></b>>', nodesep='1', minlen='4')
-            g.node(obj.source.name, shape='doublecircle')
-            g.node(obj.target.name, shape='doublecircle')
+            g.edge(mark_NG(obj.source), mark_NG(obj.target), label='<<b><i>' + obj.name + '</i></b>>', nodesep='1', minlen='4')
+            g.node(mark_NG(obj.source), shape='doublecircle')
+            g.node(mark_NG(obj.target), shape='doublecircle')
             link_Subgroup(obj.source)
             link_Subgroup(obj.target)
         if isinstance(obj, SpikeMonitor):
-            g.edge(obj.name, obj.source.name)
+            g.edge(obj.name, mark_NG(obj.source))
             g.node(obj.name, shape='Msquare')
-            g.node(obj.source.name, shape='doublecircle')
+            g.node(mark_NG(obj.source), shape='doublecircle')
             link_Subgroup(obj.source)
         if isinstance(obj, StateMonitor):
-            g.edge(obj.name, obj.source.name)
+            g.edge(obj.name, mark_NG(obj.source))
             g.node(obj.name, shape='box')
-            g.node(obj.source.name, shape='doublecircle')
+            g.node(mark_NG(obj.source), shape='doublecircle')
             link_Subgroup(obj.source)
         if isinstance(obj, PoissonInput):
-            g.edge(obj.name, obj._group.name)
+            g.edge(obj.name, mark_NG(obj._group))
             g.node(obj.name, shape='rarrow')
-            g.node(obj._group.name, shape='doublecircle')
+            g.node(mark_NG(obj._group), shape='doublecircle')
             link_Subgroup(obj._group)
         if type(obj) is CodeRunner:
-            g.edge(obj.name, obj.group.name)
+            g.edge(obj.name, mark_NG(obj.group))
             g.node(obj.name, shape='invtriangle')
-            g.node(obj.group.name, shape='doublecircle')
+            g.node(mark_NG(obj.group), shape='doublecircle')
     path = g.render('net', 'tmp', format='png')
 
     return '{' + path + '}'
@@ -374,14 +395,17 @@ def generate_constant_list(d):
                 key_str = '\\textit{' + replace_underscore(key) + '}'
 
             if isinstance(value, Quantity):
-                constant_list.append(key_str + ': ' + value.in_best_unit(python_code=True))
+                constant_list.append(key_str + ': ' + sympy.latex(value.in_best_unit()))
+                # constant_list.append(key_str + ': ' + value.in_best_unit(python_code=True))
+            elif isinstance(value, str):
+                constant_list.append(key_str + ': ' + sympy.latex(str_to_sympy(value)))
             else:
                 constant_list.append(key_str + ': ' + str(value))
 
         return constant_list
 
 
-def generate_tex_file(net, outputFile, constant_dict=None):
+def generate_tex_file(net, outputFile, constant_dict, log_dict):
     if not os.path.exists('tmp'):
         os.mkdir('tmp')
 
@@ -392,7 +416,7 @@ def generate_tex_file(net, outputFile, constant_dict=None):
     net_list = []
     for obj in net.objects:
         if isinstance(obj, NeuronGroup):
-            net_list.append(generate_ng_latex(obj))
+            net_list.append(generate_ng_latex(obj, log_dict))
         if isinstance(obj, Synapses):
             net_list.append(generate_syn_latex(obj))
         if isinstance(obj, StateMonitor):
@@ -417,6 +441,24 @@ def generate_tex_file(net, outputFile, constant_dict=None):
     file.close()
 
 
+def generate_log_dict(BrianLogger_tmp_log):
+    '''
+    explanations see create_NN_pdf
+    '''
+    f = open(BrianLogger_tmp_log, "r")
+    string = f.read()
+    ll = re.findall('Creating code object \(group=.*\n[ ]*Key condition:\n[ ]*_cond = True\n[ ]*Key statement:\n[ ]*.*',
+                    string)
+
+    d = defaultdict(list)
+
+    for x in ll:
+        k = re.search('group=.*,', x).group(0).strip('group=').rstrip(',')
+        v = re.search('Key statement:\n[ ]*.*', x).group(0).strip('Key statement:').strip()
+        d[k].append(v)
+
+    return d
+
 def create_pdf(input_filename, output_filename):
     process = subprocess.Popen([
         'latex',  # Or maybe 'C:\\Program Files\\MikTex\\miktex\\bin\\latex.exe
@@ -425,7 +467,7 @@ def create_pdf(input_filename, output_filename):
         input_filename])
     process.wait()
 
-def  create_NN_pdf(net, name='net', d=None):
+def  create_NN_pdf(net, name='net', constant_dict=None, BrianLogger_tmp_log=None):
     '''
     Top level function for generating a pdf document for a brian2 Network object.
     This function will generate a pdf document that has the specified name under the folder 'pdf'
@@ -439,10 +481,25 @@ def  create_NN_pdf(net, name='net', d=None):
         name of the document
     d: {str, 'Quantity'/str/int/float etc.}, optional
         a dictionary tant contains constants users want to document along with the Network
+    BrianLogger_tmp_log: str
+        the 'BrianLogger.tmp_log' parameter is a path for temporary log location to generate log_dict.
+
+        log_dict is a defaultdict that contains mappings from name of an object(NeuronGroup and Synapse)to a list thant contains
+        additional changes to that object.
+        For example, in Kremer_et_al_2011_barrel_cortex example in Brian2 website, the statement
+        >>> layer23exc.barrel_idx = 'floor(x) + floor(y)*barrelarraysize'
+        won't be documented because this statement is not stored into the NeuronGroup object layer23.
+        this information is extracted from BrianLogger.tmp_log.
+        In oreder to use this feature, users need make sure the log is not deleted after a successful run.
+        i.e. add this two lines of code after the import statement, andin front of your example:
+        >>> BrianLogger.log_level_diagnostic()
+        >>> prefs._set_preference('logging.delete_log_on_exit',False)
+
     '''
     tex_path = 'tmp/' + name + '.tex'
     pdf_path = 'pdf/' + name
-    generate_tex_file(net, tex_path, d)
+    log_dict = generate_log_dict(BrianLogger_tmp_log)
+    generate_tex_file(net, tex_path, constant_dict, log_dict)
     create_pdf(tex_path, pdf_path)
 # Example usage:
 # generate_tex_file(net, 'tmp/net.tex')
