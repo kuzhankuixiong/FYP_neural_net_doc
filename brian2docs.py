@@ -25,7 +25,7 @@ def convert_code_to_latex_listing(code):
     '''
     l = code.split('\n')
     l = [i.strip() for i in l]
-    begin_listing = '\n\\begin{lstlisting}[language=Python,breaklines,showstringspaces=false]\n'
+    begin_listing = '\n\\begin{lstlisting}\n'
     eqs = begin_listing + '\n\n'.join(l) + '\n\\end{lstlisting}\n'
 
     return eqs
