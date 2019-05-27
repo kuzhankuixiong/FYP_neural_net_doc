@@ -19,31 +19,15 @@
 \lstset{language=Python}
 
 \lstloadlanguages{Python}
-\lstset{basicstyle=\ttfamily,
-        
-          keywordstyle=\color{blue},
-        
-          identifierstyle=\bfseries,
-        
-          stringstyle=\color{green},
-        
-          morestring=[s]{'''}{'''},
-        
-          morestring=[s]{"""}{"""},
-        
-          commentstyle=\color{comment},
-        
-          upquote=true,
-        
-          showstringspaces=false,
-        
-          columns=fixed, 
-        
-          basewidth={0.5em,0.4em},
-        
-          frame=trBL
-
-}
+\lstset{basicstyle=\ttfamily, keywordstyle=\color{blue},
+ identifierstyle=\bfseries,
+ stringstyle=\color{green},
+ morestring=[s]{'''}{'''},
+ morestring=[s]{"""}{"""},
+ commentstyle=\color{comment}, upquote=true,
+ showstringspaces=false,
+ columns=fixed, basewidth={0.5em,0.4em},
+ frame=trBL,  breaklines=true, showstringspaces=false }
 
 
 
