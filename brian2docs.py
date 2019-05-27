@@ -110,7 +110,7 @@ def generate_ng_latex(NG, log_dict):
 
         if NG.morphology is not None:
             morpho = NG.morphology
-            pic_path = 'tmp/' + NG.name + '.png'
+            pic_path = 'tmp/' + NG.name + '.pdf'
             plt.close()
             brian_plot(morpho)
             pp.savefig(pic_path)
@@ -196,7 +196,7 @@ def generate_ng_latex(NG, log_dict):
     return '\n'.join(text)
 
 
-def generate_network_graph(net):
+def generate_network_graph(net, name):
     '''
     net: Network object in brian2
 
@@ -215,7 +215,7 @@ def generate_network_graph(net):
             g.node(mark_NG(SB), shape='circle')
             g.node(mark_NG(SB.source), shape='doublecircle')
 
-    g = Digraph('G', filename='synapse.gv')
+    g = Digraph('G', filename=name+'.gv')
     for obj in net.objects:
         if isinstance(obj, NeuronGroup):
             g.node(mark_NG(obj), shape='doublecircle')
@@ -244,7 +244,7 @@ def generate_network_graph(net):
             g.edge(obj.name, mark_NG(obj.group))
             g.node(obj.name, shape='invtriangle')
             g.node(mark_NG(obj.group), shape='doublecircle')
-    path = g.render('net', 'tmp', format='png')
+    path = g.render(name, 'tmp', format='pdf')
 
     return '{' + path + '}'
 
@@ -278,7 +278,7 @@ def generate_syn_latex(syn):
         return ''.join(str_events)
 
     def plot_synapse(syn):
-        pic_path = 'tmp/' + syn.name + '.png'
+        pic_path = 'tmp/' + syn.name + '.pdf'
         plt.close()
         brian_plot(syn)
         pp.savefig(pic_path)
@@ -340,7 +340,7 @@ def generate_state_mon_latex(mon):
                          only has one variable''')
         return ''
     else:
-        pic_path = 'tmp/' + mon.name + '.png'
+        pic_path = 'tmp/' + mon.name + '.pdf'
         plt.close()
         brian_plot(mon)
         pp.savefig(pic_path)
@@ -361,7 +361,7 @@ def generate_spike_mon_latex(mon):
     '''
     write StateMonitor and SpikeMonitor group into file
     '''
-    pic_path = 'tmp/' + mon.name + '.png'
+    pic_path = 'tmp/' + mon.name + '.pdf'
     plt.close()
     brian_plot(mon)
     pp.savefig(pic_path)
@@ -405,12 +405,12 @@ def generate_constant_list(d):
         return constant_list
 
 
-def generate_tex_file(net, outputFile, constant_dict, log_dict):
+def generate_tex_file(net, outputFile, constant_dict, log_dict, name):
     if not os.path.exists('tmp'):
         os.mkdir('tmp')
 
     file = open(outputFile, 'w')
-    net_graph_path = generate_network_graph(net)
+    net_graph_path = generate_network_graph(net, name)
     net_graph_latex_path = net_graph_path.replace('\\', '/')
 
     net_list = []
@@ -445,20 +445,23 @@ def generate_log_dict(BrianLogger_tmp_log):
     '''
     explanations see create_NN_pdf
     '''
-    f = open(BrianLogger_tmp_log, "r")
-    string = f.read()
-    ll = re.findall('Creating code object \(group=.*\n[ ]*Key condition:\n[ ]*_cond = True\n[ ]*Key statement:\n[ ]*.*',
-                    string)
+    if BrianLogger_tmp_log is not None:
 
-    d = defaultdict(list)
+        f = open(BrianLogger_tmp_log, "r")
+        string = f.read()
+        ll = re.findall('Creating code object \(group=.*\n[ ]*Key condition:\n[ ]*_cond = True\n[ ]*Key statement:\n[ ]*.*',
+                        string)
 
-    for x in ll:
-        k = re.search('group=.*,', x).group(0).strip('group=').rstrip(',')
-        v = re.search('Key statement:\n[ ]*.*', x).group(0).strip('Key statement:').strip()
-        d[k].append(v)
+        d = defaultdict(list)
 
-    return d
+        for x in ll:
+            k = re.search('group=.*,', x).group(0).strip('group=').rstrip(',')
+            v = re.search('Key statement:\n[ ]*.*', x).group(0).strip('Key statement:').strip()
+            d[k].append(v)
 
+        return d
+    else:
+        return None
 def create_pdf(input_filename, output_filename):
     process = subprocess.Popen([
         'latex',  # Or maybe 'C:\\Program Files\\MikTex\\miktex\\bin\\latex.exe
@@ -499,7 +502,7 @@ def  create_NN_pdf(net, name='net', constant_dict=None, BrianLogger_tmp_log=None
     tex_path = 'tmp/' + name + '.tex'
     pdf_path = 'pdf/' + name
     log_dict = generate_log_dict(BrianLogger_tmp_log)
-    generate_tex_file(net, tex_path, constant_dict, log_dict)
+    generate_tex_file(net, tex_path, constant_dict, log_dict, name)
     create_pdf(tex_path, pdf_path)
 # Example usage:
 # generate_tex_file(net, 'tmp/net.tex')
