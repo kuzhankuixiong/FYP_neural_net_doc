@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="brian2docs",
-    version="0.2.0",
+    version="1.0.0",
     author="Zeqian Cao",
     author_email="1733884649@qq.com",
     description="A package generate pdf document for brian2 neural network",
