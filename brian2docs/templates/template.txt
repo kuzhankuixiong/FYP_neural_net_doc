@@ -1,1 +1,53 @@
+\documentclass[10pt]{article}
+\usepackage{amsmath}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{graphicx}
+\usepackage{mdframed}
+\usepackage[T1]{fontenc}
+\usepackage[left=5em]{geometry}
+\usepackage[export]{adjustbox}
+\usepackage{color}
 
+\usepackage{textcomp}
+\allowdisplaybreaks
+
+\definecolor{green}{rgb}{0,0.5,0}
+
+\definecolor{comment}{rgb}{0.6,0.2,0.2}
+
+\lstset{language=Python}
+
+\lstloadlanguages{Python}
+\lstset{basicstyle=\ttfamily, keywordstyle=\color{blue},
+ identifierstyle=\bfseries,
+ stringstyle=\color{green},
+ morestring=[s]{'''}{'''},
+ morestring=[s]{"""}{"""},
+ commentstyle=\color{comment}, upquote=true,
+ showstringspaces=false,
+ columns=fixed, basewidth={0.5em,0.4em},
+ frame=trBL,  breaklines=true, showstringspaces=false }
+
+
+
+\begin{document}
+
+\section{Network Graph:}
+\begin{center}
+\includegraphics[width=300pt, max width=\textwidth]{{net_graph_latex_path}}
+\end{center}
+
+\section{Constant:}
+\begin{mdframed}[backgroundcolor=black!10]
+{% for obj in constant_list %}
+        ${{obj}}$\\
+{% endfor %}
+\end{mdframed}
+
+
+{% for obj in net_list %}
+{{obj}}
+{% endfor %}
+
+\end{document}
